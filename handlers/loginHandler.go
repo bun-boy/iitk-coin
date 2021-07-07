@@ -81,7 +81,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		w.WriteHeader(http.StatusBadRequest)
-		resp.Message = "Sorry, only POST requests are supported"
+		resp.Message = "Sorry, only POST requests allowed!"
 		JsonRes, _ := json.Marshal(resp)
 		w.Write(JsonRes)
 		return
