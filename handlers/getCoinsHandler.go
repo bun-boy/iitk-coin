@@ -51,5 +51,4 @@ func GetCoinsHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(JsonRes)
 		return
 	}
-
 }
