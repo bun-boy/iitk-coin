@@ -12,9 +12,7 @@ import (
 func VerifyToken(request_token string) (*jwt.Token, error) {
 	tokenString := request_token
 	godotenv.Load()
-
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		//Make sure that the token method conform to "SigningMethodHMAC"
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}

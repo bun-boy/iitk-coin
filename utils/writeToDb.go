@@ -17,7 +17,6 @@ var Options = sql.TxOptions{
 }
 
 func WriteUserToDb(name string, rollno string, password string, account_type string) error {
-
 	statement, _ :=
 		Db.Prepare("INSERT INTO user (name,rollno,password,account_type) VALUES (?, ?, ?, ?)")
 	_, err := statement.Exec(name, rollno, password, account_type)
@@ -28,29 +27,22 @@ func WriteUserToDb(name string, rollno string, password string, account_type str
 	if err != nil {
 		return err
 	}
-
 	return nil
-
 }
 
 func InitializeCoins(rollno string) error {
 	Db, _ :=
 		sql.Open("sqlite3", "./database/user.db")
-
 	statement, _ :=
 		Db.Prepare(`INSERT INTO bank (rollno,coins) VALUES ($1,$2); `)
-
 	_, err := statement.Exec(rollno, 0.00)
 	if err != nil {
 		return err
 	}
-
 	return nil
-
 }
 
 func WriteCoinsToDb(rollno string, numberOfCoins string, remarks string) (error, string) { // cpnvert this into a transaction
-
 	coins_number, e := strconv.ParseFloat(numberOfCoins, 32)
 	if e != nil {
 		return e, "Coins not valid "
@@ -59,9 +51,7 @@ func WriteCoinsToDb(rollno string, numberOfCoins string, remarks string) (error,
 	if err != nil {
 		return err, "User not present "
 	}
-
 	tx, _ := Db.BeginTx(context.Background(), &Options)
-
 	res, execErr := tx.Exec(`UPDATE bank SET coins = coins + ? WHERE rollno= ? AND coins + ?<= ?;`, coins_number, rollno, coins_number, MaxCoins)
 	rowsAffected, _ := res.RowsAffected()
 	if execErr != nil || rowsAffected != 1 {
@@ -78,11 +68,9 @@ func WriteCoinsToDb(rollno string, numberOfCoins string, remarks string) (error,
 		log.Fatal(err)
 		return err, "Some error occured in the transaction, please try again later "
 	}
-
 	if err = tx.Commit(); err != nil {
 		return err, ""
 	}
-
 	return nil, "Coins added sucessfully "
 }
 
@@ -98,7 +86,6 @@ func TransferCoinDb(firstRollno string, secondRollno string, transferAmount floa
 	if err != nil {
 		return errors.New("user " + secondRollno + " not present "), 0
 	}
-
 	var options = sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	}
@@ -108,7 +95,6 @@ func TransferCoinDb(firstRollno string, secondRollno string, transferAmount floa
 		log.Fatal(err)
 		return err, 0
 	}
-
 	batch1 := firstRollno[0:2]
 	batch2 := secondRollno[0:2]
 	var taxRate float32 = 0.02
@@ -126,11 +112,8 @@ func TransferCoinDb(firstRollno string, secondRollno string, transferAmount floa
 
 		balanceError := errors.New("not enough balance  ")
 		return balanceError, 0
-
 	}
-
 	res, execErr = tx.Exec("UPDATE bank SET coins = coins + ? WHERE rollno=? AND coins + ? <= ?", transferAmount, secondRollno, transferAmount, MaxCoins)
-
 	rowsAffected, _ = res.RowsAffected()
 	if execErr != nil || rowsAffected != 1 {
 		_ = tx.Rollback()
@@ -140,7 +123,6 @@ func TransferCoinDb(firstRollno string, secondRollno string, transferAmount floa
 		overflowError := errors.New("Balance cannot exceed " + fmt.Sprintf("%f", MaxCoins))
 		return overflowError, 0
 	}
-
 	_, execErr = tx.Exec(`INSERT INTO transfers (TransferFrom,TransferTo,amount,tax,time) VALUES (?,?,?,?,?)`, firstRollno, secondRollno, transferAmount, taxAmount, time.Now())
 	if execErr != nil {
 		_ = tx.Rollback()
@@ -149,13 +131,10 @@ func TransferCoinDb(firstRollno string, secondRollno string, transferAmount floa
 	if err = tx.Commit(); err != nil {
 		return err, 0
 	}
-
 	return nil, float64(taxAmount)
 }
 
-func RedeemCoinsDb(roll_no string, item_id int) (float64, error) { //convert this into a transaction and add eror handling
-	// Check if the item id is valid and obtain the coist of the item
-
+func RedeemCoinsDb(roll_no string, item_id int) (float64, error) {
 	numEvents, _ := GetNumEvents(roll_no)
 	if numEvents < MinEvents {
 		return 0, errors.New("You need to participate in at least " + strconv.Itoa(MinEvents) + " events to clam a reward ")
@@ -167,7 +146,6 @@ func RedeemCoinsDb(roll_no string, item_id int) (float64, error) { //convert thi
 	if available == 0 {
 		return 0, errors.New("item not available, please select another item ")
 	}
-
 	_, _, err = GetUserFromRollNo(roll_no)
 	if err != nil {
 		return 0, errors.New("user " + roll_no + " not present ")
@@ -209,29 +187,23 @@ func RedeemCoinsDb(roll_no string, item_id int) (float64, error) { //convert thi
 		return 0, err
 	}
 	coins, _ := GetCoinsFromRollNo(roll_no)
-
 	return coins, err
 }
 
 func WriteItemsToDb(item_id int, cost string, number int) (string, error) { // cpnvert this into a transaction
-
 	cost_number, e := strconv.ParseFloat(cost, 32)
 	if e != nil {
 		return "Coins not valid ", e
 	}
-
 	tx, _ := Db.BeginTx(context.Background(), &Options)
-
 	_, err = tx.Exec(`INSERT INTO items (id,cost,available) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET available = available + ? ;`, item_id, cost_number, number, number)
 	if err != nil {
 		tx.Rollback()
 		log.Fatal(err)
 		return "Some error occured in the transaction, please try again later ", err
 	}
-
 	if err = tx.Commit(); err != nil {
 		return "", err
 	}
 	return "success", e
-
 }
