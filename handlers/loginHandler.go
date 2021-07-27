@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/bun-boy/iitk-coin/utils"
-
+	"github.com/matrix101A/utils"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -31,12 +30,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+
 	resp := &serverResponse{
 		Message: "",
 	}
 	switch r.Method {
+
 	case "POST":
+
 		var user User
+
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -45,6 +48,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		rollno := user.Rollno
 		password := user.Password
 		hashedPassword := utils.Get_hashed_password(rollno)
+
 		if hashedPassword == "" {
 			w.WriteHeader(401)
 			resp.Message = "User does not exist"
@@ -52,14 +56,17 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write(JsonRes)
 			return
 		}
+
+		// Comparing the password with the hash
 		if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
-			w.WriteHeader(500)
-			resp.Message = "Incorrect password! Please try again"
+			w.WriteHeader(500) // send server error
+			resp.Message = "Password was incorrect"
 			JsonRes, _ := json.Marshal(resp)
 			w.Write(JsonRes)
 			return
 		}
 		_, accountType, _ := utils.GetUserFromRollNo(rollno)
+
 		token, expirationTime, err := utils.CreateToken(rollno, accountType)
 		if err != nil {
 			w.WriteHeader(401)
@@ -67,21 +74,26 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			JsonRes, _ := json.Marshal(resp)
 			w.Write(JsonRes)
 			return
+
 		}
-		http.SetCookie(w, &http.Cookie{
+
+		http.SetCookie(w, &http.Cookie{ // setting cookie for the user with expiration time
 			Name:     "token",
 			Value:    token,
 			Expires:  expirationTime,
 			HttpOnly: true,
 		})
+
 		w.WriteHeader(http.StatusOK)
-		resp.Message = "Successfully logged in!"
+
+		resp.Message = "Password Correct, you are logged in (Cookie set)"
 		JsonRes, _ := json.Marshal(resp)
 		w.Write(JsonRes)
 		return
 	default:
 		w.WriteHeader(http.StatusBadRequest)
-		resp.Message = "Sorry, only POST requests allowed!"
+
+		resp.Message = "Sorry, only POST requests are supported"
 		JsonRes, _ := json.Marshal(resp)
 		w.Write(JsonRes)
 		return

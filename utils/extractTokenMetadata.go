@@ -16,5 +16,7 @@ func ExtractTokenMetadata(user_token string) (string, string, error) { //returns
 		account_type, _ := claims["accountType"].(string)
 		return roll_no, account_type, err
 	}
+
 	return "", "", err
+
 }
